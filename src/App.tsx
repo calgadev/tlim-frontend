@@ -1,36 +1,38 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AppShell } from '@/components/AppShell/AppShell';
 
-// ── Stub page components ────────────────────────────────────────────────────
+// ── Page components (separate files) ────────────────────────────────────────
+import { DashboardPage } from '@/pages/DashboardPage';
+import { CharactersPage } from '@/pages/characters/CharactersPage';
+import { InventoryPage } from '@/pages/inventory/InventoryPage';
+import { HuntsPage } from '@/pages/hunts/HuntsPage';
+import { WikiPage } from '@/pages/wiki/WikiPage';
+import { AdminPage } from '@/pages/admin/AdminPage';
+import { ServersPage } from '@/pages/servers/ServersPage';
 
-function LoginPage() { return <h1>Login</h1>; }
-function RegisterPage() { return <h1>Register</h1>; }
-function DashboardPage() { return <h1>Dashboard</h1>; }
-function CharactersPage() { return <h1>Characters</h1>; }
-function CharacterNewPage() { return <h1>New Character</h1>; }
-function CharacterDetailPage() { return <h1>Character Detail</h1>; }
-function InventoryPage() { return <h1>Inventory</h1>; }
-function InventorySellPage() { return <h1>Sell Decisions</h1>; }
-function HuntsPage() { return <h1>Hunt Sessions</h1>; }
-function HuntsImportPage() { return <h1>Import Hunt</h1>; }
-function HuntDetailPage() { return <h1>Hunt Detail</h1>; }
-function WikiItemsPage() { return <h1>Item Wiki</h1>; }
-function WikiItemDetailPage() { return <h1>Item Detail</h1>; }
-function WikiCreaturesPage() { return <h1>Creature Wiki</h1>; }
-function WikiCreatureDetailPage() { return <h1>Creature Detail</h1>; }
-function PricesPage() { return <h1>Market Prices</h1>; }
-function ServersPage() { return <h1>Servers</h1>; }
-function AdminPage() { return <h1>Admin Panel</h1>; }
-function AdminScraperPage() { return <h1>Scraper</h1>; }
+// ── Inline stubs for sub-routes (real content in subsequent features) ────────
+function LoginPage() { return <h1 style={{ padding: 24 }}>Login</h1>; }
+function RegisterPage() { return <h1 style={{ padding: 24 }}>Register</h1>; }
+function CharacterNewPage() { return <p style={{ color: '#94A3B8' }}>New Character — coming in Phase 4</p>; }
+function CharacterDetailPage() { return <p style={{ color: '#94A3B8' }}>Character Detail — coming in Phase 4</p>; }
+function InventorySellPage() { return <p style={{ color: '#94A3B8' }}>Sell Decisions — coming in Phase 5</p>; }
+function HuntsImportPage() { return <p style={{ color: '#94A3B8' }}>Import Hunt — coming in Phase 6</p>; }
+function HuntDetailPage() { return <p style={{ color: '#94A3B8' }}>Hunt Detail — coming in Phase 6</p>; }
+function WikiItemsPage() { return <p style={{ color: '#94A3B8' }}>Item Browser — coming in Phase 7</p>; }
+function WikiItemDetailPage() { return <p style={{ color: '#94A3B8' }}>Item Detail — coming in Phase 7</p>; }
+function WikiCreaturesPage() { return <p style={{ color: '#94A3B8' }}>Creature Browser — coming in Phase 7</p>; }
+function WikiCreatureDetailPage() { return <p style={{ color: '#94A3B8' }}>Creature Detail — coming in Phase 7</p>; }
+function AdminScraperPage() { return <p style={{ color: '#94A3B8' }}>Scraper — coming in Phase 8</p>; }
 
-// Redirect to /dashboard if logged in, otherwise /login
+// Redirects to /dashboard when authenticated, otherwise /login
 function LandingRedirect() {
   const { token } = useAuth();
   return <Navigate to={token ? '/dashboard' : '/login'} replace />;
 }
 
-// ── Router ──────────────────────────────────────────────────────────────────
+// ── Router ───────────────────────────────────────────────────────────────────
 
 function App() {
   return (
@@ -41,59 +43,128 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected — USER */}
+        {/* Protected — all authenticated routes render inside AppShell */}
         <Route path="/dashboard" element={
-          <ProtectedRoute><DashboardPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Dashboard">
+              <DashboardPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/characters" element={
-          <ProtectedRoute><CharactersPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Characters">
+              <CharactersPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/characters/new" element={
-          <ProtectedRoute><CharacterNewPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="New Character">
+              <CharacterNewPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/characters/:id" element={
-          <ProtectedRoute><CharacterDetailPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Character">
+              <CharacterDetailPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/inventory/:characterId" element={
-          <ProtectedRoute><InventoryPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Inventory">
+              <InventoryPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/inventory/:characterId/sell" element={
-          <ProtectedRoute><InventorySellPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Sell Decisions">
+              <InventorySellPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/hunts/:characterId" element={
-          <ProtectedRoute><HuntsPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Hunt Sessions">
+              <HuntsPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/hunts/:characterId/import" element={
-          <ProtectedRoute><HuntsImportPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Import Hunt">
+              <HuntsImportPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
+        {/* /hunts/session/:id avoids param collision with /hunts/:characterId */}
         <Route path="/hunts/session/:id" element={
-          <ProtectedRoute><HuntDetailPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Hunt Session">
+              <HuntDetailPage />
+            </AppShell>
+          </ProtectedRoute>
+        } />
+        <Route path="/wiki" element={
+          <ProtectedRoute>
+            <AppShell title="Wiki">
+              <WikiPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/wiki/items" element={
-          <ProtectedRoute><WikiItemsPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Item Browser">
+              <WikiItemsPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/wiki/items/:id" element={
-          <ProtectedRoute><WikiItemDetailPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Item Detail">
+              <WikiItemDetailPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/wiki/creatures" element={
-          <ProtectedRoute><WikiCreaturesPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Creature Browser">
+              <WikiCreaturesPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/wiki/creatures/:id" element={
-          <ProtectedRoute><WikiCreatureDetailPage /></ProtectedRoute>
-        } />
-        <Route path="/prices/:serverId" element={
-          <ProtectedRoute><PricesPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Creature Detail">
+              <WikiCreatureDetailPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/servers" element={
-          <ProtectedRoute><ServersPage /></ProtectedRoute>
+          <ProtectedRoute>
+            <AppShell title="Servers">
+              <ServersPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
 
         {/* Protected — ADMIN only */}
         <Route path="/admin" element={
-          <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>
+          <ProtectedRoute adminOnly>
+            <AppShell title="Admin">
+              <AdminPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
         <Route path="/admin/scraper" element={
-          <ProtectedRoute adminOnly><AdminScraperPage /></ProtectedRoute>
+          <ProtectedRoute adminOnly>
+            <AppShell title="Scraper">
+              <AdminScraperPage />
+            </AppShell>
+          </ProtectedRoute>
         } />
       </Routes>
     </BrowserRouter>
