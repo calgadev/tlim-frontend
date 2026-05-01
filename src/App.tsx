@@ -12,9 +12,10 @@ import { WikiPage } from '@/pages/wiki/WikiPage';
 import { AdminPage } from '@/pages/admin/AdminPage';
 import { ServersPage } from '@/pages/servers/ServersPage';
 
+import { LoginPage } from '@/pages/auth/LoginPage';
+import { RegisterPage } from '@/pages/auth/RegisterPage';
+
 // ── Inline stubs for sub-routes (real content in subsequent features) ────────
-function LoginPage() { return <h1 style={{ padding: 24 }}>Login</h1>; }
-function RegisterPage() { return <h1 style={{ padding: 24 }}>Register</h1>; }
 function CharacterNewPage() { return <p style={{ color: '#94A3B8' }}>New Character — coming in Phase 4</p>; }
 function CharacterDetailPage() { return <p style={{ color: '#94A3B8' }}>Character Detail — coming in Phase 4</p>; }
 function InventorySellPage() { return <p style={{ color: '#94A3B8' }}>Sell Decisions — coming in Phase 5</p>; }
