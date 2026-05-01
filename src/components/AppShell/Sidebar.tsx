@@ -1,5 +1,5 @@
 import { ComponentType } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Package, Swords, BookOpen, Shield, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -34,6 +34,7 @@ export function Sidebar() {
   // Never derive admin visibility from a separate variable or from decoding the JWT manually.
   const { username, isAdmin, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = isAdmin ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS;
 
@@ -134,7 +135,7 @@ export function Sidebar() {
             className="flex-shrink-0 transition-colors duration-150 p-1"
             style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}
             title="Logout"
-            onClick={logout}
+            onClick={() => { logout(); navigate('/login', { replace: true }); }}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#64748B'; }}
           >
