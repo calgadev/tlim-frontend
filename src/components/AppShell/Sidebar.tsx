@@ -1,143 +1,87 @@
-import { ComponentType } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Package, Swords, BookOpen, Shield, LogOut } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Users, Package, Swords, BookOpen, Globe, Shield, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-
-type IconComponent = ComponentType<{ size?: number }>;
+import { cn } from '@/lib/utils';
 
 interface NavItem {
   label: string;
-  icon: IconComponent;
+  icon: ComponentType<{ size?: number }>;
   href: string;
-  // prefixMatch: true for sections with sub-routes (e.g. /characters/:id)
+  /** false: only the exact path is active */
   prefixMatch?: boolean;
 }
 
+// /inventory and /hunts resolve to the active character (see ActiveCharacterRedirect).
 const BASE_NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { label: 'Characters', icon: Users, href: '/characters', prefixMatch: true },
-  // characterId placeholder — resolved in Phase 4 when character selection is implemented
-  { label: 'Inventory', icon: Package, href: '/inventory/1', prefixMatch: true },
-  { label: 'Hunts', icon: Swords, href: '/hunts/1', prefixMatch: true },
-  { label: 'Wiki', icon: BookOpen, href: '/wiki', prefixMatch: true },
+  { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', prefixMatch: false },
+  { label: 'Characters', icon: Users, href: '/characters' },
+  { label: 'Inventory', icon: Package, href: '/inventory' },
+  { label: 'Hunts', icon: Swords, href: '/hunts' },
+  { label: 'Wiki', icon: BookOpen, href: '/wiki' },
+  { label: 'Servers', icon: Globe, href: '/servers' },
 ];
 
-const ADMIN_NAV_ITEM: NavItem = {
-  label: 'Admin',
-  icon: Shield,
-  href: '/admin',
-  prefixMatch: true,
-};
+const ADMIN_NAV_ITEM: NavItem = { label: 'Admin', icon: Shield, href: '/admin' };
 
 export function Sidebar() {
-  // isAdmin is sourced exclusively from AuthContext, which reads it from the login API response.
-  // Never derive admin visibility from a separate variable or from decoding the JWT manually.
+  // isAdmin comes from the login response (AuthContext). It only hides UI; the API enforces access.
   const { username, isAdmin, logout } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
-
   const navItems = isAdmin ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : BASE_NAV_ITEMS;
-
-  function isActive(item: NavItem): boolean {
-    const prefix = item.prefixMatch
-      ? item.href.split('/').slice(0, 2).join('/')  // e.g. '/inventory/1' → '/inventory'
-      : item.href;
-    return item.prefixMatch
-      ? location.pathname.startsWith(prefix)
-      : location.pathname === item.href;
-  }
-
   const avatarInitial = (username?.[0] ?? '?').toUpperCase();
 
   return (
-    <aside
-      className="flex flex-col flex-shrink-0 h-screen"
-      style={{ width: 260, backgroundColor: '#111827', borderRight: '1px solid rgba(255,255,255,0.06)' }}
-    >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div
-          className="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, #D9B35B, #F4D27A)', color: '#221607' }}
-        >
+    <aside className="flex h-screen w-[260px] shrink-0 flex-col border-r border-white/[0.06] bg-sidebar">
+      <div className="flex items-center gap-3 border-b border-white/[0.06] px-6 py-5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold-gradient text-sm font-bold text-gold-ink">
           T
         </div>
         <div>
-          <span className="text-base font-semibold" style={{ color: '#F4D27A' }}>TLIM</span>
-          <span className="text-xs ml-2" style={{ color: '#64748B' }}>v0.1</span>
+          <span className="text-base font-semibold text-gold-light">TLIM</span>
+          <span className="ml-2 text-xs text-fg-muted">Loot &amp; Inventory</span>
         </div>
       </div>
 
-      {/* Nav items */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item);
-          return active ? (
-            <Link
-              key={item.label}
-              to={item.href}
-              className="flex items-center gap-3 px-4 rounded-2xl text-sm font-semibold"
-              style={{
-                height: 44,
-                background: 'linear-gradient(135deg, #D9B35B, #F4D27A)',
-                color: '#221607',
-                textDecoration: 'none',
-              }}
-            >
-              <Icon size={18} />
-              {item.label}
-            </Link>
-          ) : (
-            <Link
-              key={item.label}
-              to={item.href}
-              className="flex items-center gap-3 px-4 rounded-2xl text-sm font-medium transition-all duration-150"
-              style={{
-                height: 44,
-                color: '#94A3B8',
-                textDecoration: 'none',
-                backgroundColor: 'transparent',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#94A3B8';
-              }}
-            >
-              <Icon size={18} />
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Main">
+        {navItems.map(({ label, icon: Icon, href, prefixMatch = true }) => (
+          <NavLink
+            key={label}
+            to={href}
+            end={!prefixMatch}
+            className={({ isActive }) =>
+              cn(
+                'flex h-11 items-center gap-3 rounded-2xl px-4 text-sm transition-all duration-150',
+                isActive
+                  ? 'bg-gold-gradient font-semibold text-gold-ink'
+                  : 'font-medium text-fg-secondary hover:bg-white/5 hover:text-fg'
+              )
+            }
+          >
+            <Icon size={18} />
+            {label}
+          </NavLink>
+        ))}
       </nav>
 
-      {/* User footer */}
-      <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.03)' }}
-        >
-          <div
-            className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #D9B35B, #F4D27A)', color: '#221607' }}
-          >
+      <div className="border-t border-white/[0.06] px-3 py-4">
+        <div className="flex items-center gap-3 rounded-2xl bg-white/[0.03] px-3 py-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-gradient text-xs font-bold text-gold-ink">
             {avatarInitial}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate" style={{ color: '#FFFFFF' }}>{username ?? '—'}</p>
-            <p className="text-xs" style={{ color: '#64748B' }}>Online</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-fg">{username ?? '—'}</p>
+            <p className="text-xs text-fg-muted">{isAdmin ? 'Administrator' : 'Player'}</p>
           </div>
           <button
-            className="flex-shrink-0 transition-colors duration-150 p-1"
-            style={{ color: '#64748B', background: 'none', border: 'none', cursor: 'pointer' }}
-            title="Logout"
-            onClick={() => { logout(); navigate('/login', { replace: true }); }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#64748B'; }}
+            type="button"
+            title="Sign out"
+            aria-label="Sign out"
+            className="shrink-0 p-1 text-fg-muted transition-colors duration-150 hover:text-danger"
+            onClick={() => {
+              logout();
+              navigate('/login', { replace: true });
+            }}
           >
             <LogOut size={16} />
           </button>

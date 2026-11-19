@@ -1,25 +1,28 @@
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from './Card';
 
 interface StatCardProps {
   label: string;
-  metric: string | number;
-  trend?: string;
+  metric: ReactNode;
+  trend?: ReactNode;
+  tone?: 'default' | 'gold' | 'success' | 'danger';
   className?: string;
 }
 
-export function StatCard({ label, metric, trend, className }: StatCardProps) {
+const toneClass = {
+  default: 'text-fg',
+  gold: 'text-gold-light',
+  success: 'text-success',
+  danger: 'text-danger',
+};
+
+export function StatCard({ label, metric, trend, tone = 'default', className }: StatCardProps) {
   return (
     <Card className={cn(className)}>
-      <p className="text-xs font-medium uppercase tracking-wide mb-3" style={{ color: '#64748B' }}>
-        {label}
-      </p>
-      <p className="text-4xl font-bold mb-1 leading-none" style={{ color: '#FFFFFF' }}>
-        {metric}
-      </p>
-      {trend && (
-        <p className="text-xs mt-2" style={{ color: '#94A3B8' }}>{trend}</p>
-      )}
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-fg-muted">{label}</p>
+      <p className={cn('mb-1 text-3xl font-bold leading-none', toneClass[tone])}>{metric}</p>
+      {trend && <p className="mt-2 text-xs text-fg-secondary">{trend}</p>}
     </Card>
   );
 }

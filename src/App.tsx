@@ -1,175 +1,89 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
+import type { RouteObject } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { GuestRoute, ProtectedRoute } from '@/components/ProtectedRoute';
 import { AppShell } from '@/components/AppShell/AppShell';
-
-// ── Page components (separate files) ────────────────────────────────────────
-import { DashboardPage } from '@/pages/DashboardPage';
-import { CharactersPage } from '@/pages/characters/CharactersPage';
-import { InventoryPage } from '@/pages/inventory/InventoryPage';
-import { HuntsPage } from '@/pages/hunts/HuntsPage';
-import { WikiPage } from '@/pages/wiki/WikiPage';
-import { AdminPage } from '@/pages/admin/AdminPage';
-import { ServersPage } from '@/pages/servers/ServersPage';
-
+import type { RouteHandle } from '@/components/AppShell/AppShell';
+import { ActiveCharacterRedirect } from '@/components/CharacterScope';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { NotFoundPage } from '@/pages/NotFoundPage';
+import { CharactersPage } from '@/pages/characters/CharactersPage';
+import { CharacterEditPage, CharacterNewPage } from '@/pages/characters/CharacterFormPage';
+import { CharacterDetailPage } from '@/pages/characters/CharacterDetailPage';
+import { InventoryPage, SellPage } from '@/pages/inventory/InventoryPage';
+import { HuntsPage } from '@/pages/hunts/HuntsPage';
+import { HuntImportPage } from '@/pages/hunts/HuntImportPage';
+import { HuntDetailPage } from '@/pages/hunts/HuntDetailPage';
+import { WikiPage } from '@/pages/wiki/WikiPage';
+import { ItemsPage } from '@/pages/wiki/ItemsPage';
+import { ItemDetailPage } from '@/pages/wiki/ItemDetailPage';
+import { CreaturesPage } from '@/pages/wiki/CreaturesPage';
+import { CreatureDetailPage } from '@/pages/wiki/CreatureDetailPage';
+import { PricesPage } from '@/pages/prices/PricesPage';
+import { ServersPage } from '@/pages/servers/ServersPage';
+import { AdminPage, ScraperPage } from '@/pages/admin/AdminPage';
 
-// ── Inline stubs for sub-routes (real content in subsequent features) ────────
-function CharacterNewPage() { return <p style={{ color: '#94A3B8' }}>New Character — coming in Phase 4</p>; }
-function CharacterDetailPage() { return <p style={{ color: '#94A3B8' }}>Character Detail — coming in Phase 4</p>; }
-function InventorySellPage() { return <p style={{ color: '#94A3B8' }}>Sell Decisions — coming in Phase 5</p>; }
-function HuntsImportPage() { return <p style={{ color: '#94A3B8' }}>Import Hunt — coming in Phase 6</p>; }
-function HuntDetailPage() { return <p style={{ color: '#94A3B8' }}>Hunt Detail — coming in Phase 6</p>; }
-function WikiItemsPage() { return <p style={{ color: '#94A3B8' }}>Item Browser — coming in Phase 7</p>; }
-function WikiItemDetailPage() { return <p style={{ color: '#94A3B8' }}>Item Detail — coming in Phase 7</p>; }
-function WikiCreaturesPage() { return <p style={{ color: '#94A3B8' }}>Creature Browser — coming in Phase 7</p>; }
-function WikiCreatureDetailPage() { return <p style={{ color: '#94A3B8' }}>Creature Detail — coming in Phase 7</p>; }
-function AdminScraperPage() { return <p style={{ color: '#94A3B8' }}>Scraper — coming in Phase 8</p>; }
-
-// Redirects to /dashboard when authenticated, otherwise /login
 function LandingRedirect() {
   const { token } = useAuth();
   return <Navigate to={token ? '/dashboard' : '/login'} replace />;
 }
 
-// ── Router ───────────────────────────────────────────────────────────────────
+const page = (path: string, element: ReactNode, title: string): RouteObject => ({
+  path,
+  element,
+  handle: { title } satisfies RouteHandle,
+});
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<LandingRedirect />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+// Hunt session detail uses /hunts/session/:id so it can't be confused with /hunts/:characterId.
+const routes: RouteObject[] = [
+  { path: '/', element: <LandingRedirect /> },
+  { path: '/login', element: <GuestRoute><LoginPage /></GuestRoute> },
+  { path: '/register', element: <GuestRoute><RegisterPage /></GuestRoute> },
+  {
+    element: (
+      <ProtectedRoute>
+        <AppShell />
+      </ProtectedRoute>
+    ),
+    children: [
+      page('/dashboard', <DashboardPage />, 'Dashboard'),
 
-        {/* Protected — all authenticated routes render inside AppShell */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <AppShell title="Dashboard">
-              <DashboardPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/characters" element={
-          <ProtectedRoute>
-            <AppShell title="Characters">
-              <CharactersPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/characters/new" element={
-          <ProtectedRoute>
-            <AppShell title="New Character">
-              <CharacterNewPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/characters/:id" element={
-          <ProtectedRoute>
-            <AppShell title="Character">
-              <CharacterDetailPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/inventory/:characterId" element={
-          <ProtectedRoute>
-            <AppShell title="Inventory">
-              <InventoryPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/inventory/:characterId/sell" element={
-          <ProtectedRoute>
-            <AppShell title="Sell Decisions">
-              <InventorySellPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/hunts/:characterId" element={
-          <ProtectedRoute>
-            <AppShell title="Hunt Sessions">
-              <HuntsPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/hunts/:characterId/import" element={
-          <ProtectedRoute>
-            <AppShell title="Import Hunt">
-              <HuntsImportPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        {/* /hunts/session/:id avoids param collision with /hunts/:characterId */}
-        <Route path="/hunts/session/:id" element={
-          <ProtectedRoute>
-            <AppShell title="Hunt Session">
-              <HuntDetailPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/wiki" element={
-          <ProtectedRoute>
-            <AppShell title="Wiki">
-              <WikiPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/wiki/items" element={
-          <ProtectedRoute>
-            <AppShell title="Item Browser">
-              <WikiItemsPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/wiki/items/:id" element={
-          <ProtectedRoute>
-            <AppShell title="Item Detail">
-              <WikiItemDetailPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/wiki/creatures" element={
-          <ProtectedRoute>
-            <AppShell title="Creature Browser">
-              <WikiCreaturesPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/wiki/creatures/:id" element={
-          <ProtectedRoute>
-            <AppShell title="Creature Detail">
-              <WikiCreatureDetailPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/servers" element={
-          <ProtectedRoute>
-            <AppShell title="Servers">
-              <ServersPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
+      page('/characters', <CharactersPage />, 'Characters'),
+      page('/characters/new', <CharacterNewPage />, 'Characters'),
+      page('/characters/:id', <CharacterDetailPage />, 'Characters'),
+      page('/characters/:id/edit', <CharacterEditPage />, 'Characters'),
 
-        {/* Protected — ADMIN only */}
-        <Route path="/admin" element={
-          <ProtectedRoute adminOnly>
-            <AppShell title="Admin">
-              <AdminPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/scraper" element={
-          <ProtectedRoute adminOnly>
-            <AppShell title="Scraper">
-              <AdminScraperPage />
-            </AppShell>
-          </ProtectedRoute>
-        } />
-      </Routes>
-    </BrowserRouter>
-  );
+      page('/inventory', <ActiveCharacterRedirect to={(id) => `/inventory/${id}`} />, 'Inventory'),
+      page('/inventory/:characterId', <InventoryPage />, 'Inventory'),
+      page('/inventory/:characterId/sell', <SellPage />, 'Inventory'),
+
+      page('/hunts', <ActiveCharacterRedirect to={(id) => `/hunts/${id}`} />, 'Hunts'),
+      page('/hunts/session/:id', <HuntDetailPage />, 'Hunts'),
+      page('/hunts/:characterId', <HuntsPage />, 'Hunts'),
+      page('/hunts/:characterId/import', <HuntImportPage />, 'Hunts'),
+
+      page('/wiki', <WikiPage />, 'Wiki'),
+      page('/wiki/items', <ItemsPage />, 'Wiki'),
+      page('/wiki/items/:id', <ItemDetailPage />, 'Wiki'),
+      page('/wiki/creatures', <CreaturesPage />, 'Wiki'),
+      page('/wiki/creatures/:id', <CreatureDetailPage />, 'Wiki'),
+
+      page('/servers', <ServersPage />, 'Servers'),
+      page('/prices/:serverId', <PricesPage />, 'Market prices'),
+
+      page('/admin', <ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>, 'Admin'),
+      page('/admin/scraper', <ProtectedRoute adminOnly><ScraperPage /></ProtectedRoute>, 'Admin'),
+
+      page('*', <NotFoundPage />, 'Not found'),
+    ],
+  },
+];
+
+const router = createBrowserRouter(routes);
+
+export default function App() {
+  return <RouterProvider router={router} />;
 }
-
-export default App;
