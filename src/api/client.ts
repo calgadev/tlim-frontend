@@ -1,15 +1,15 @@
 import axios from 'axios';
+import { clearStoredAuth, readStoredToken } from '@/lib/authStorage';
 
+// In development VITE_API_BASE_URL is left unset: requests go to /api on the Vite dev server,
+// which proxies them to the backend (see vite.config.ts), so no CORS is involved.
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, '') ?? '',
 });
 
-const AUTH_KEYS = ['token', 'username', 'role'] as const;
-
-// Token is read at call time so logout immediately stops token attachment.
-// sessionStorage is checked second to support the "remember me unchecked" case.
+// Token is read at call time, so a logout immediately stops it being attached.
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
+  const token = readStoredToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -17,15 +17,12 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (res) => res,
   (err) => {
+    // Auth endpoints legitimately return 401 for wrong credentials; let the form handle those.
     const isAuthEndpoint = err.config?.url?.startsWith('/api/auth/');
     if (err.response?.status === 401 && !isAuthEndpoint) {
-      // Only redirect on 401 from protected endpoints — auth endpoints legitimately
-      // return 401 for wrong credentials and must let the form handle the error.
-      AUTH_KEYS.forEach((key) => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
-      });
-      window.location.href = '/login';
+      // Expired or invalid token: drop the whole session and start over at the login page.
+      clearStoredAuth();
+      window.location.assign('/login?expired=1');
     }
     return Promise.reject(err);
   }
