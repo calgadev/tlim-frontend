@@ -5,9 +5,9 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript_6-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite_8-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![TanStack Query](https://img.shields.io/badge/TanStack_Query_v5-FF4154?style=for-the-badge&logo=reactquery&logoColor=white)
-![Status](https://img.shields.io/badge/Status-In_Progress-yellow?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Complete-success?style=for-the-badge)
 
-> The React frontend for [TLIM Stage 2](https://github.com/calgadev/tlim-java), a REST API built in Java / Spring Boot / PostgreSQL. It needs the Stage 2 backend running to work.
+> The React frontend for [TLIM Stage 2](https://github.com/calgadev/tlim-java), a REST API built in Java / Spring Boot / PostgreSQL, which evolved from the [Stage 1 Python MVP](https://github.com/calgadev/tlim-python2). It needs the Stage 2 backend running to work.
 
 ---
 
@@ -26,9 +26,9 @@ Stage 1 proved the concept with a working Python/FastAPI MVP. Stage 2 rebuilt th
 
 | Stage | Stack | Repository | Status |
 |---|---|---|---|
-| Stage 1 — Backend + Server-side UI | Python 3.12 · FastAPI · SQLAlchemy 2.0 · SQLite · Jinja2 | tlim-python2 | ✅ Complete |
-| Stage 2 — Backend rewrite | Java 17 · Spring Boot · Spring Data JPA · PostgreSQL · Maven | [tlim-java](https://github.com/calgadev/tlim-java) | ✅ Complete |
-| Stage 3 — Modern frontend | React 19 · TypeScript · Vite · TanStack Query · Tailwind CSS | tlim-frontend *(current)* | 🚧 In Progress |
+| Stage 1 — Backend + Server-side UI | Python 3.12 · FastAPI · SQLAlchemy 2.0 · SQLite · Jinja2 | [tlim-python2](https://github.com/calgadev/tlim-python2) | ✅ Complete |
+| Stage 2 — REST API rewrite | Java 17 · Spring Boot 3.5 · Spring Data JPA · PostgreSQL · Flyway | [tlim-java](https://github.com/calgadev/tlim-java) | ✅ Complete (deploy pending) |
+| Stage 3 — React frontend | React 19 · TypeScript · Vite · TanStack Query · Tailwind CSS | [tlim-frontend](https://github.com/calgadev/tlim-frontend) *(current)* | ✅ Complete (deploy pending) |
 
 The project is intentionally developed in three stages with different stacks to demonstrate that the same problem can be solved across different languages and technologies — showing transferable knowledge rather than familiarity with a single tool.
 
@@ -201,7 +201,7 @@ Routes marked USER need a signed-in user; ADMIN routes send other users to `/das
 - Role-based access beyond USER / ADMIN
 - Tibia.com live API integration (character lookup, server status)
 - Push notifications or real-time updates (WebSocket, SSE)
-- Pagination (the backend returns full lists)
+- Pagination (lists are loaded whole; only the item search is capped with `?limit=`)
 - Soft delete / undo, audit trail
 - Multi-language / i18n
 - Mobile app
