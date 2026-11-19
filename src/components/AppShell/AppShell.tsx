@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { Outlet, useMatches } from 'react-router-dom';
+import { LoadingState } from '@/components/ui/States';
 import { ActiveCharacterProvider } from '@/contexts/ActiveCharacterContext';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
@@ -22,7 +24,10 @@ export function AppShell() {
           <Topbar title={title?.title ?? 'TLIM'} />
           <main className="flex-1 overflow-auto p-6">
             <div className="mx-auto max-w-7xl">
-              <Outlet />
+              {/* Route chunks are lazy-loaded; keep the shell visible while one loads */}
+              <Suspense fallback={<LoadingState rows={6} />}>
+                <Outlet />
+              </Suspense>
             </div>
           </main>
         </div>
