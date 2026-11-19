@@ -2,12 +2,12 @@
 ### Stage 3: React / TypeScript / Vite
 
 ![React](https://img.shields.io/badge/React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript_5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript_6-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite_8-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![TanStack Query](https://img.shields.io/badge/TanStack_Query_v5-FF4154?style=for-the-badge&logo=reactquery&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In_Progress-yellow?style=for-the-badge)
 
-> The React frontend for [TLIM Stage 2](https://github.com/calgadev/tlim-java) — a production-grade REST API built in Java / Spring Boot / PostgreSQL. Requires the Stage 2 backend running locally to function.
+> The React frontend for [TLIM Stage 2](https://github.com/calgadev/tlim-java), a REST API built in Java / Spring Boot / PostgreSQL. It needs the Stage 2 backend running to work.
 
 ---
 
@@ -60,12 +60,12 @@ This methodology is the foundation of a future SaaS product aimed at enabling no
 | Concern | Library |
 |---|---|
 | Build tool | Vite 8 |
-| UI framework | React 19 + TypeScript 5 |
-| Routing | React Router v7 |
-| Data fetching | TanStack Query v5 (React Query) |
+| UI framework | React 19 + TypeScript 6 |
+| Routing | React Router v7 (data router, nested layout route) |
+| Data fetching | TanStack Query v5 |
 | HTTP client | Axios |
-| Styling | Tailwind CSS v3 |
-| Component library | shadcn/ui |
+| Styling | Tailwind CSS v3 with project design tokens |
+| Components | Own UI kit in `src/components/ui` (no third-party component library) |
 | Form handling | React Hook Form + Zod |
 | Icons | lucide-react |
 
@@ -75,164 +75,145 @@ This methodology is the foundation of a future SaaS product aimed at enabling no
 
 ```
 src/
-├── api/              ← Axios instance + all endpoint functions (one file per domain)
-├── components/       ← Shared, reusable UI pieces (not tied to a route)
-├── contexts/         ← React contexts (AuthContext)
-├── hooks/            ← Custom hooks that wrap TanStack Query calls
-├── pages/            ← One folder per route; contains the route component + sub-components
-├── types/            ← All TypeScript interfaces derived from the Stage 2 API
-├── lib/
-│   └── utils.ts      ← cn() helper (clsx + tailwind-merge) and other pure utilities
-├── App.tsx           ← React Router route definitions with ProtectedRoute wrappers
-└── main.tsx          ← ReactDOM root with QueryClientProvider + AuthProvider
+├── api/              ← Axios client, error parsing and endpoint functions
+│   ├── client.ts         base URL, Bearer interceptor, 401 → /login
+│   ├── errors.ts         getApiErrorMessage(): any error → message for the UI
+│   ├── auth.ts           login / register
+│   ├── catalog.ts        servers, items, creatures (shared catalog)
+│   ├── characters.ts     characters, inventory, sale decisions, hunts, market prices
+│   └── admin.ts          TibiaWiki scraper and world list import
+├── hooks/            ← TanStack Query hooks per domain + centralised query keys
+├── contexts/         ← AuthContext (session + JWT expiry), ActiveCharacterContext
+├── components/
+│   ├── ui/               Button, Card, Field (Input/Select/Textarea/Checkbox), Modal,
+│   │                     Table, Badge, StatCard, SegmentedToggle, States, Toast, …
+│   ├── AppShell/         layout route: Sidebar + Topbar (character switcher) + <Outlet/>
+│   ├── CharacterScope    loads :characterId, handles 404/403, sets the active character
+│   └── ItemPicker        debounced item autocomplete
+├── pages/            ← One folder per section; panels are shared between pages
+├── types/            ← TypeScript interfaces mirroring the tlim-java DTOs
+├── lib/              ← cn(), formatting, labels, auth storage helpers
+├── App.tsx           ← Route table
+└── main.tsx          ← QueryClient, AuthProvider, ToastProvider
 ```
 
-**Auth flow** — JWT token, username, and role are persisted to `localStorage` via `AuthContext`. An Axios request interceptor attaches `Authorization: Bearer <token>` to every API call. A response interceptor clears all three `localStorage` keys and redirects to `/login` on any 401 response.
+**Auth flow.** Login returns `{ token, username, role }`. With *Remember me* it is stored in `localStorage`, otherwise in `sessionStorage` (the other storage is always cleared first). An Axios interceptor attaches `Authorization: Bearer <token>` to every call. The JWT has no refresh token and lives 24 h: `AuthContext` reads its `exp` claim and signs the user out when it expires, and any 401 from a protected endpoint clears the session and redirects to `/login?expired=1`.
 
-**Route protection** — `ProtectedRoute` redirects unauthenticated users to `/login`. An `adminOnly` flag redirects non-admin users to `/dashboard`. Admin routes (`/admin/**`) are wrapped with `adminOnly`.
+**Route protection.** `ProtectedRoute` sends signed-out users to `/login`; `adminOnly` sends non-admins to `/dashboard`. Signed-in users visiting `/login` or `/register` go to the dashboard. These are UX conveniences: tlim-java enforces every permission itself.
+
+**Active character.** Inventory, sale decisions and hunts belong to a character. The character picked in the top bar (remembered per browser) is what `/inventory` and `/hunts` open.
 
 ---
 
 ## Key Technical Decisions
 
-**TanStack Query with `staleTime: 30_000` and `retry: 1`** — API data is considered fresh for 30 seconds before a background refetch is triggered. One retry is attempted on failure before surfacing an error to the UI. This avoids hammering the backend on transient errors without silently swallowing them.
+**Dev proxy instead of CORS in development.** Requests go to `/api` on the Vite dev server, which proxies them to the backend (`vite.config.ts`). `VITE_API_BASE_URL` is only needed when the frontend is served from a different origin than the API; tlim-java allows the origins listed in its `CORS_ALLOWED_ORIGINS`.
 
-**Axios interceptor reads `localStorage` at call time** — The Bearer token is read inside the request interceptor function, not captured at module initialisation. This means a logout immediately prevents the token from being attached to any subsequent request, with no need to recreate the Axios instance.
+**Hierarchical query keys.** Keys such as `['inventory', characterId, 'decisions', filters]` let one invalidation refresh a whole area. Importing or deleting a hunt changes the inventory on the server, so both invalidate the character's inventory and decisions; changing a market price invalidates every decision view.
 
-**401 interceptor clears all three `localStorage` keys** — On a 401 response, `token`, `username`, and `role` are all removed before redirecting to `/login`. Clearing only the token would leave `username` and `role` in storage, creating an inconsistent auth state on next page load.
+**The catalog is never fetched whole.** `GET /api/items` can return thousands of rows, so item search only runs with 2+ letters or a category and passes `?limit=`. Creatures (no loot in the list) are fetched once and filtered on the client.
 
-**`cn()` utility wraps `clsx` + `tailwind-merge`** — Class names are composed with `clsx` for conditional logic and deduplicated with `tailwind-merge` to prevent Tailwind utility conflicts (e.g. `p-2` being overridden by `p-4` without the last-wins semantics). This is the standard pattern used by shadcn/ui components.
+**Tolerant error parsing.** tlim-java returns `{ status, error, message }`, but `getApiErrorMessage()` still copes with an empty body, a missing message, a network failure or a 5xx, so every screen shows a useful line instead of a raw Axios error. 4xx responses are not retried.
 
-**`marketPrice: null` vs `0` preserved in the type system** — `ServerItemPriceResponse.marketPrice` is typed as `number | null`. `null` means "price not yet registered"; `0` means the item is known to be worthless. These are semantically distinct and rendered differently in the price manager UI.
+**`marketPrice: null` vs `0`.** `null` means "not registered yet" (the decision engine flags it); `0` means the item is known to be worthless on the market. The price manager shows them differently, and clearing a price sends `null`.
 
-**Hunt detail route uses `/hunts/session/:id`** — The spec defines both `/hunts/:characterId` (character hunt list) and `/hunts/:id` (session detail). Both are single-param routes and would be ambiguous in React Router. The session detail route uses `/hunts/session/:id` to make routing unambiguous without restructuring the URL namespace.
+**Hunt times are shown in UTC.** tlim-java stores the Hunt Analyser's wall-clock times as UTC, so showing them in UTC matches what the player saw in the game client.
+
+**Hunt detail route is `/hunts/session/:id`.** `/hunts/:characterId` and a session detail route would both be single-param routes; the `session` segment keeps them unambiguous.
 
 ---
 
 ## Prerequisites
 
-- Node.js 20+ (install via [nvm](https://github.com/nvm-sh/nvm))
-- The TLIM Stage 2 backend running at `http://localhost:8080`
+- Node.js 20+
+- The [tlim-java](https://github.com/calgadev/tlim-java) backend running locally (default `http://localhost:8080`), with PostgreSQL. See its README for setup. On first start it imports the official world list; an admin then runs the TibiaWiki scraper from `/admin/scraper` to fill the item and creature catalog.
 
 ---
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `VITE_API_BASE_URL` | Base URL of the Stage 2 REST API |
+All optional. Put them in `.env.local` (ignored by git through `*.local`).
 
-⚠️ Never commit your `.env.local` file to GitHub. It is protected by `*.local` in `.gitignore`.
+| Variable | Used by | Description |
+|---|---|---|
+| `VITE_API_PROXY_TARGET` | dev server | Where `/api` is proxied. Default `http://localhost:8080` |
+| `VITE_API_BASE_URL` | build | Absolute API URL when the built app is served from another origin. Leave unset to use relative `/api` |
 
 ---
 
 ## Running Locally
 
 ```bash
-# 1. Clone the repository
+# 1. Clone and install
 git clone https://github.com/calgadev/tlim-frontend.git
 cd tlim-frontend
-
-# 2. Install dependencies
 npm install
 
-# 3. Create your environment file
-echo "VITE_API_BASE_URL=http://localhost:8080" > .env.local
-
-# 4. Start the dev server
+# 2. Start tlim-java (see its README), then the dev server
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Open [http://localhost:5173](http://localhost:5173) and register an account. Admin accounts are created by tlim-java from `TLIM_ADMIN_USERNAME` / `TLIM_ADMIN_PASSWORD`.
 
-Make sure the Stage 2 backend is running before logging in — the frontend has no mock data layer.
+```bash
+npm run build   # type-check + production build into dist/
+npm run lint
+```
 
 ---
 
 ## Routes
 
-All protected routes redirect unauthenticated users to `/login`. Routes marked ADMIN redirect non-admin users to `/dashboard`.
+Routes marked USER need a signed-in user; ADMIN routes send other users to `/dashboard`.
 
 | Path | Description | Auth |
 |---|---|---|
-| `/` | Redirects to `/dashboard` if logged in, `/login` otherwise | — |
-| `/login` | Login form | Public |
-| `/register` | Register form | Public |
-| `/dashboard` | Overview: characters, recent sessions, quick decisions | USER |
+| `/` | Redirects to `/dashboard` or `/login` | — |
+| `/login`, `/register` | Sign in / create an account | Public |
+| `/dashboard` | Active character overview: passive gold, recent hunts, best sales | USER |
 | `/characters` | Character list | USER |
-| `/characters/new` | Create character | USER |
-| `/characters/:id` | Character detail with Inventory, Hunt History, and Sell tabs | USER |
-| `/inventory/:characterId` | Full inventory view for a character | USER |
-| `/inventory/:characterId/sell` | Sale decision view (requires server selection) | USER |
-| `/hunts/:characterId` | Hunt session list with location filter | USER |
-| `/hunts/:characterId/import` | Hunt Analyser import form | USER |
-| `/hunts/session/:id` | Single hunt session detail | USER |
-| `/wiki/items` | Item browser with name/category search | USER |
-| `/wiki/items/:id` | Item detail with NPC buyers and loot sources | USER |
-| `/wiki/creatures` | Creature browser | USER |
-| `/wiki/creatures/:id` | Creature detail with stats, resistances, loot table | USER |
-| `/prices/:serverId` | Market price manager for a server | USER |
-| `/servers` | Server list and management | USER |
-| `/admin` | Admin panel | ADMIN |
-| `/admin/scraper` | Scraper trigger and status polling | ADMIN |
+| `/characters/new`, `/characters/:id/edit` | Create / edit (name, world, vocation) | USER |
+| `/characters/:id` | Character detail with Inventory, Sell and Hunt history tabs | USER |
+| `/inventory` | Opens the active character's inventory | USER |
+| `/inventory/:characterId` | Inventory with targets, deficit and surplus | USER |
+| `/inventory/:characterId/sell` | Sale decisions (uses the character's world prices) | USER |
+| `/hunts` | Opens the active character's hunts | USER |
+| `/hunts/:characterId` | Hunt list with location filter | USER |
+| `/hunts/:characterId/import` | Hunt Analyser import (text or JSON) | USER |
+| `/hunts/session/:id` | Hunt session detail | USER |
+| `/wiki` | Catalog index | USER |
+| `/wiki/items`, `/wiki/items/:id` | Item search and detail with NPC buyers | USER |
+| `/wiki/creatures`, `/wiki/creatures/:id` | Creature list and detail with damage modifiers and loot | USER |
+| `/servers` | Official worlds (create/edit/delete for ADMIN) | USER |
+| `/prices/:serverId` | Market prices of a world; `?character=` lists that character's missing prices | USER |
+| `/admin` | Admin panel: scraper status, world list import | ADMIN |
+| `/admin/scraper` | TibiaWiki scraper with scope and 5 s status polling | ADMIN |
 
 ---
 
 ## What is NOT in scope for Stage 3
 
-- Email verification, OAuth, or social login
-- Role-based access beyond USER / ADMIN binary
+- Email verification, password reset, OAuth or social login
+- Role-based access beyond USER / ADMIN
 - Tibia.com live API integration (character lookup, server status)
 - Push notifications or real-time updates (WebSocket, SSE)
-- Pagination on any list endpoint (the backend returns full lists)
-- Soft delete / undo functionality
-- Audit trail / change history
+- Pagination (the backend returns full lists)
+- Soft delete / undo, audit trail
 - Multi-language / i18n
-- Mobile app (React Native)
+- Mobile app
 
 ---
 
 ## Implementation Phases
 
-### Phase 1 — Foundation *(current)*
-- [x] Project scaffold (Vite + React + TypeScript)
-- [x] All dependencies installed (React Router, TanStack Query, Axios, React Hook Form, Zod, Tailwind CSS, shadcn/ui)
-- [x] TypeScript interfaces for all API response and request shapes
-- [x] Axios instance with JWT request interceptor and 401 response interceptor
-- [x] AuthContext with login/logout and localStorage persistence
-- [x] ProtectedRoute with adminOnly support
-- [x] React Router with all routes stubbed
-
-### Phase 2 — Character Management
-- [ ] Character list page
-- [ ] Create / edit character form (server selector, vocation selector)
-- [ ] Character detail page with tab shell (Inventory, Hunt History, Sell)
-
-### Phase 3 — Inventory and Sale Decision Engine
-- [ ] Inventory table with color-coded rows (deficit / surplus / neutral)
-- [ ] Inline upsert modal and delete
-- [ ] Sale decision view: server selector, decision table, summary cards, missing-price alert
-
-### Phase 4 — Hunt Sessions
-- [ ] Hunt session list with debounced location filter
-- [ ] Hunt Analyser import form (text / JSON toggle, optional fields)
-- [ ] Hunt session detail (stats, loot table, kill table, skip warnings)
-
-### Phase 5 — Item and Creature Wiki Browsers
-- [ ] Item browser with debounced name / category search
-- [ ] Item detail with NPC buyers table and boolean badges
-- [ ] Creature browser
-- [ ] Creature detail with resistance table (color-coded) and loot table
-
-### Phase 6 — Market Prices and Server Management
-- [ ] Market price manager with inline editing and null-vs-0 distinction
-- [ ] Server list and create / edit form
-- [ ] Missing-price CTA linking from sale decision to pre-filtered price manager
-
-### Phase 7 — Admin Panel
-- [ ] Scraper trigger button with 5-second status polling while RUNNING
-- [ ] 409 "already running" friendly message
-- [ ] Scraper result display (items scraped, failures, duration)
+- [x] **Foundation:** scaffold, design tokens, UI kit, typed API layer synced with tlim-java, auth with JWT expiry, layout route
+- [x] **Characters:** list, create/edit with world picker, detail with tabs, active character switcher
+- [x] **Inventory and sale decisions:** colour-coded inventory, upsert modal with item autocomplete, decision filters, totals, missing-price alert
+- [x] **Hunt sessions:** list with location filter, text/JSON import with skipped-name report, detail, delete (reverts inventory)
+- [x] **Wiki:** item search and detail, creature list and detail
+- [x] **Market prices and servers:** inline price editing with null-vs-0, missing prices from the sale view, world list with admin CRUD
+- [x] **Admin:** scraper with scope, polling, 409 / FAILED handling and results; world list import
+- [ ] **Next:** automated tests (Vitest + Testing Library), route-level code splitting, deployment
 
 ---
 
