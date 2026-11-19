@@ -67,6 +67,7 @@ This methodology is the foundation of a future SaaS product aimed at enabling no
 | Styling | Tailwind CSS v3 with project design tokens |
 | Components | Own UI kit in `src/components/ui` (no third-party component library) |
 | Form handling | React Hook Form + Zod |
+| Tests | Vitest + Testing Library (jsdom) |
 | Icons | lucide-react |
 
 ---
@@ -119,6 +120,8 @@ src/
 
 **Hunt times are shown in UTC.** tlim-java stores the Hunt Analyser's wall-clock times as UTC, so showing them in UTC matches what the player saw in the game client.
 
+**Route-level code splitting.** Every page is loaded with `React.lazy` the first time its route is visited, so the initial bundle only carries the shell, auth and shared libraries.
+
 **Hunt detail route is `/hunts/session/:id`.** `/hunts/:characterId` and a session detail route would both be single-param routes; the `session` segment keeps them unambiguous.
 
 ---
@@ -156,6 +159,7 @@ npm run dev
 Open [http://localhost:5173](http://localhost:5173) and register an account. Admin accounts are created by tlim-java from `TLIM_ADMIN_USERNAME` / `TLIM_ADMIN_PASSWORD`.
 
 ```bash
+npm test        # Vitest + Testing Library
 npm run build   # type-check + production build into dist/
 npm run lint
 ```
@@ -213,7 +217,8 @@ Routes marked USER need a signed-in user; ADMIN routes send other users to `/das
 - [x] **Wiki:** item search and detail, creature list and detail
 - [x] **Market prices and servers:** inline price editing with null-vs-0, missing prices from the sale view, world list with admin CRUD
 - [x] **Admin:** scraper with scope, polling, 409 / FAILED handling and results; world list import
-- [ ] **Next:** automated tests (Vitest + Testing Library), route-level code splitting, deployment
+- [x] **Quality:** Vitest + Testing Library tests, route-level code splitting, GitHub Actions CI (lint, test, build)
+- [ ] **Next:** deployment
 
 ---
 
